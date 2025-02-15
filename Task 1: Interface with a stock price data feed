@@ -1,50 +1,39 @@
-class Car:
+import yfinance as yf
+import requests
+import json
+from datetime import datetime
 
-    def __init__(self, speed=0):
-        self.speed = speed
-        self.odometer = 0
-        self.time = 0
 
-    def say_state(self):
-        print("I'm going {} kph!".format(self.speed))
+ALPHA_VANTAGE_API_KEY = "YOUR_ALPHA_VANTAGE_API_KEY"  # Get from https://www.alphavantage.co
+STOCK_SYMBOL = "AAPL"  # Example: Apple Inc.
 
-    def accelerate(self):
-        self.speed += 5
 
-    def brake(self):
-        if self.speed < 5:
-            self.speed = 0
+def get_stock_price_yahoo(symbol):
+    try:
+        stock = yf.Ticker(symbol)
+        current_price = stock.history(period="1d")["Close"].iloc[-1]
+        print(f"Yahoo Finance - {symbol} Price: ${current_price:.2f}")
+    except Exception as e:
+        print("Error fetching from Yahoo Finance:", e)
+
+
+def get_stock_price_alpha_vantage(symbol, api_key):
+    try:
+        url = f"https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol={symbol}&interval=5min&apikey={api_key}"
+        response = requests.get(url)
+        data = response.json()
+
+        if "Time Series (5min)" in data:
+            latest_time = list(data["Time Series (5min)"].keys())[0]
+            price = data["Time Series (5min)"][latest_time]["1. open"]
+            print(f"Alpha Vantage - {symbol} Price at {latest_time}: ${price}")
         else:
-            self.speed -= 5
+            print("Error:", data.get("Note", "Invalid API response"))
+    except Exception as e:
+        print("Error fetching from Alpha Vantage:", e)
 
-    def step(self):
-        self.odometer += self.speed
-        self.time += 1
+# Run the functions
+print(f"Fetching stock data for {STOCK_SYMBOL}...")
+get_stock_price_yahoo(STOCK_SYMBOL)
+get_stock_price_alpha_vantage(STOCK_SYMBOL, ALPHA_VANTAGE_API_KEY)
 
-    def average_speed(self):
-        if self.time != 0:
-            return self.odometer / self.time
-        else:
-            pass
-
-
-if __name__ == '__main__':
-
-    my_car = Car()
-    print("I'm a car!")
-    while True:
-        action = input("What should I do? [A]ccelerate, [B]rake, "
-                 "show [O]dometer, or show average [S]peed?").upper()
-        if action not in "ABOS" or len(action) != 1:
-            print("I don't know how to do that")
-            continue
-        if action == 'A':
-            my_car.accelerate()
-        elif action == 'B':
-            my_car.brake()
-        elif action == 'O':
-            print("The car has driven {} kilometers".format(my_car.odometer))
-        elif action == 'S':
-            print("The car's average speed was {} kph".format(my_car.average_speed()))
-        my_car.step()
-        my_car.say_state()
